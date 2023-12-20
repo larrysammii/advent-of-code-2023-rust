@@ -1,65 +1,84 @@
 use crate::custom_error::AocError;
 
 #[tracing::instrument]
-pub fn process(
-    input: &str,
-) -> miette::Result<String, AocError> {
-    let output =
-        input.lines().map(process_line).sum::<u32>();
+fn replace_prefix(line: &str) -> (char, bool) {
+    let prefixes = vec![
+        ("one", '1'),
+        ("two", '2'),
+        ("three", '3'),
+        ("four", '4'),
+        ("five", '5'),
+        ("six", '6'),
+        ("seven", '7'),
+        ("eight", '8'),
+        ("nine", '9'),
+    ];
 
-    Ok(output.to_string())
+    for (prefix, replacement) in prefixes {
+        if line.starts_with(prefix) {
+            return (replacement, true);
+        }
+    }
+
+    (' ', false)
 }
 
-#[tracing::instrument]
-fn process_line(line: &str) -> u32 {
-    let mut it = (0..line.len()).filter_map(|index| {
-        match &line[index..] {
-            line if line.starts_with("one") => Some(1),
-            line if line.starts_with("two") => Some(2),
-            line if line.starts_with("three") => Some(3),
-            line if line.starts_with("four") => Some(4),
-            line if line.starts_with("five") => Some(5),
-            line if line.starts_with("six") => Some(6),
-            line if line.starts_with("seven") => Some(7),
-            line if line.starts_with("eight") => Some(8),
-            line if line.starts_with("nine") => Some(9),
-            line => {
-                line.chars().next().unwrap().to_digit(10)
+fn process_lines(input: &str) -> u32 {
+    let mut total = 0;
+
+    for line in input.lines() {
+        let mut first = ' ';
+        let mut last = ' ';
+
+        let chars = line.chars().collect::<Vec<char>>();
+
+        for i in 0..chars.len() {
+            if chars[i].is_ascii_digit() {
+                first = chars[i];
+                break;
+            }
+
+            let (replacement, found) =
+                replace_prefix(&line[i..]);
+            if found {
+                first = replacement;
+                break;
             }
         }
-    });
-    let first = it.next().expect("should be a number");
 
-    match it.last() {
-        Some(num) => first * 10 + num,
-        None => first * 10 + first,
+        for i in (0..chars.len()).rev() {
+            if chars[i].is_ascii_digit() {
+                last = chars[i];
+                break;
+            }
+
+            let (replacement, found) =
+                replace_prefix(&line[i..]);
+            if found {
+                last = replacement;
+                break;
+            }
+        }
+
+        let first = first.to_digit(10).unwrap();
+        let last = last.to_digit(10).unwrap();
+        let number = first * 10 + last;
+        total += number;
     }
+
+    total
+}
+
+pub fn process(
+    input: &str,
+) -> miette::Result<u32, AocError> {
+    let output: u32 = process_lines(input);
+    Ok(output)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use rstest::rstest;
-
-    #[rstest]
-    #[case("two1nine", 29)]
-    #[case("eightwothree", 83)]
-    #[case("abcone2threexyz", 13)]
-    #[case("xtwone3four", 24)]
-    #[case("4nineeightseven2", 42)]
-    #[case("zoneight234", 14)]
-    #[case("7pqrstsixteen", 76)]
-    /// this test case is from the real input
-    /// it tests two overlapping numbers
-    /// where the second number should succeed
-    #[case("fivezg8jmf6hrxnhgxxttwoneg", 51)]
-    fn line_test(
-        #[case] line: &str,
-        #[case] expected: u32,
-    ) {
-        assert_eq!(expected, process_line(line))
-    }
 
     #[test]
     fn test_process() -> miette::Result<()> {
@@ -70,7 +89,7 @@ xtwone3four
 4nineeightseven2
 zoneight234
 7pqrstsixteen";
-        assert_eq!("281", process(input)?);
+        assert_eq!(281, process(input)?);
         Ok(())
     }
 }

@@ -3,34 +3,25 @@ use crate::custom_error::AocError;
 #[tracing::instrument]
 pub fn process(
     input: &str,
-) -> miette::Result<String, AocError> {
-    let output = input
+) -> miette::Result<u32, AocError> {
+    let output: u32 = input
         .lines()
         .map(|line| {
-            let mut it = line.chars();
+            let mut iter =
+                line.chars().filter_map(|c| c.to_digit(10));
 
-            let first = it
-                .find_map(|character| {
-                    character.to_digit(10)
-                })
-                .expect("should be a number");
+            let first =
+                iter.next().expect("Should be a number.");
 
-            let last = it
-                .rfind(|character| {
-                    character.is_ascii_digit()
-                })
-                .map(|character| {
-                    character.to_digit(10).unwrap()
-                })
-                // if we don't find a number, then we're
-                // re-using the first number
-                .unwrap_or(first);
+            let last = iter.last();
 
-            first * 10 + last
+            match last {
+                Some(num) => first * 10 + num,
+                None => first * 10 + first,
+            }
         })
-        .sum::<u32>();
-
-    Ok(output.to_string())
+        .sum();
+    Ok(output)
 }
 
 #[cfg(test)]
@@ -43,7 +34,7 @@ mod tests {
 pqr3stu8vwx
 a1b2c3d4e5f
 treb7uchet";
-        assert_eq!("142", process(input)?);
+        assert_eq!(142, process(input)?);
         Ok(())
     }
 }
