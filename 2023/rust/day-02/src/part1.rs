@@ -1,10 +1,21 @@
-use crate::custom_error::AocError;
-
 #[derive(Debug, Default)]
 struct Turn {
     red: u32,
     green: u32,
     blue: u32,
+}
+
+impl Turn {
+    fn validate(
+        &self,
+        red: u32,
+        green: u32,
+        blue: u32,
+    ) -> bool {
+        self.red <= red
+            && self.green <= green
+            && self.blue <= blue
+    }
 }
 
 #[derive(Debug, Default)]
@@ -62,15 +73,25 @@ fn parse(input: &str) -> Vec<Vec<Turn>> {
         }
         whole_game.rounds.push(game_list);
     }
-    println!("{:?}", &whole_game.rounds);
+
     whole_game.rounds
 }
 
 #[tracing::instrument]
-pub fn process(
-    input: &str,
-) -> miette::Result<String, AocError> {
-    todo!()
+pub fn process(input: &str) -> miette::Result<u32> {
+    let mut valid_games_sum: u32 = 0;
+
+    let game = parse(input);
+
+    'next: for (i, turns) in game.iter().enumerate() {
+        for turn in turns {
+            if !turn.validate(12, 13, 14) {
+                continue 'next;
+            }
+        }
+        valid_games_sum += i as u32 + 1;
+    }
+    Ok(valid_games_sum)
 }
 
 #[cfg(test)]
@@ -86,7 +107,7 @@ Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
         // println!("{:?}", parse(input));
-        assert_eq!("8", process(input)?);
+        assert_eq!(8, process(input)?);
         Ok(())
     }
 }
